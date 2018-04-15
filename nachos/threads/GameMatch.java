@@ -11,7 +11,7 @@ import nachos.machine.*;
 public class GameMatch {
     
     /* Three levels of player ability. */
-    private static final int abilityBeginner = 1,
+    public static final int abilityBeginner = 1,
 	abilityIntermediate = 2,
 	abilityExpert = 3;
 
