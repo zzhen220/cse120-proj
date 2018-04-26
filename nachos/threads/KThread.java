@@ -202,7 +202,11 @@ public class KThread {
 		toBeDestroyed = currentThread;
 
 		currentThread.status = statusFinished;
-
+		
+		if(currentThread.parent!=null){
+			currentThread.parent.ready();
+		}
+		
 		sleep();
 	}
 
@@ -284,7 +288,16 @@ public class KThread {
 		Lib.debug(dbgThread, "Joining to thread: " + toString());
 
 		Lib.assertTrue(this != currentThread);
+		
+		boolean intStatus = Machine.interrupt().disable();
 
+		if(this.status!=statusFinished){
+			Lib.assertTrue(this.parent==null);
+			this.parent = currentThread;
+			KThread.sleep();
+		}
+		
+		Machine.interrupt().restore(intStatus);
 	}
 
 	/**
@@ -398,7 +411,7 @@ public class KThread {
 
 		public void run() {
 			for (int i = 0; i < 5; i++) {
-				System.out.println("Cool *** thread " + which + " looped " + i
+				System.out.println("*** thread " + which + " looped " + i
 						+ " times");
 				currentThread.yield();
 			}
@@ -406,6 +419,46 @@ public class KThread {
 
 		private int which;
 	}
+	
+	// Simple test for the situation where the child finishes before
+    // the parent calls join on it.
+    
+    private static void joinTest1() {
+    	final KThread child1 = new KThread( new Runnable () {
+    		public void run() {
+    			System.out.println("I (heart) Nachos!");
+    	    	for (int i = 0; i < 5; i++) {
+    	    		System.out.println ("busy...");
+    	    		yield();
+    	    	}
+    		}
+	    });
+    	child1.setName("child1").fork();
+
+    	KThread parent1 = new KThread( new Runnable () {
+    		public void run() {
+    			System.out.println("I want to be parent of Nachos!");
+    	    	child1.join();
+    	    	System.out.println("I'm parent of Nachos!");
+    		}
+	    });
+    	parent1.setName("parent1").fork();
+	// We want the child to finish before we call join.  Although
+	// our solutions to the problems cannot busy wait, our test
+	// programs can!
+
+//    	for (int i = 0; i < 5; i++) {
+//    		System.out.println ("busy...");
+//    		yield();
+//    	}
+    	parent1.join();
+    	System.out.println("After joining, child1 should be finished.");
+    	System.out.println("is it? " + (child1.status == statusFinished));
+    	Lib.assertTrue((child1.status == statusFinished), " Expected child1 to be finished.");
+    	System.out.println("After joining, parent1 should be finished.");
+    	System.out.println("is it? " + (parent1.status == statusFinished));
+    	Lib.assertTrue((parent1.status == statusFinished), " Expected child1 to be finished.");
+    }
 
 	/**
 	 * Tests whether this module is working.
@@ -415,6 +468,7 @@ public class KThread {
 
 		new KThread(new PingTest(1)).setName("forked thread").fork();
 		new PingTest(0).run();
+		joinTest1();
 	}
 
 	private static final char dbgThread = 't';
@@ -448,9 +502,11 @@ public class KThread {
 	private Runnable target;
 
 	private TCB tcb;
+	
+	private KThread parent;
 
 	/**
-	 * Unique identifer for this thread. Used to deterministically compare
+	 * Unique identifier for this thread. Used to deterministically compare
 	 * threads.
 	 */
 	private int id = numCreated++;
