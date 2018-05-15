@@ -288,11 +288,11 @@ public class KThread {
 		Lib.debug(dbgThread, "Joining to thread: " + toString());
 
 		Lib.assertTrue(this != currentThread);
+		Lib.assertTrue(this.parent==null);
 		
 		boolean intStatus = Machine.interrupt().disable();
 
 		if(this.status!=statusFinished){
-			Lib.assertTrue(this.parent==null);
 			this.parent = currentThread;
 			KThread.sleep();
 		}
