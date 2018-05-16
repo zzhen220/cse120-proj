@@ -8,6 +8,8 @@
 *.so
 *.classpath
 *.project
+*.coff
+*.a
 
 # Packages #
 ############
@@ -37,3 +39,11 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# report #
+##########
+*.raw
+*.score
+*.summary
+
+.metadata

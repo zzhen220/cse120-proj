@@ -46,12 +46,12 @@ public class ThreadedKernel extends Kernel {
 	 * here.
 	 */
 	public void selfTest() {
-		KThread.selfTest();
-		Alarm.selfTest();
-		Condition2.selfTest();
-		GameMatch.selfTest();
-		Semaphore.selfTest();
-		SynchList.selfTest();
+//		KThread.selfTest();
+//		Alarm.selfTest();
+//		Condition2.selfTest();
+//		GameMatch.selfTest();
+//		Semaphore.selfTest();
+//		SynchList.selfTest();
 		if (Machine.bank() != null) {
 			ElevatorBank.selfTest();
 		}
@@ -95,5 +95,5 @@ public class ThreadedKernel extends Kernel {
 
 	private static ElevatorController dummy7 = null;
 
-        private static GameMatch dummu8 = null;
+	private static GameMatch dummu8 = null;
 }
