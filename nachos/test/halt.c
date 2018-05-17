@@ -12,9 +12,18 @@
 
 #include "syscall.h"
 
-int
-main()
+int main()
 {
+    char * s = "abc.txt";
+//    int fd = creat(s);
+    int fd = open(s);
+    unlink(s);
+    char b[6];
+    int l = read(fd, b, 6);
+//    close(fd);
+//    fd = creat(s);
+    char c[] = "fedcba";   	
+    write(fd, c, l);
     halt();
     /* not reached */
 }

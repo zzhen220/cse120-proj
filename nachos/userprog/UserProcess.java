@@ -26,8 +26,12 @@ public class UserProcess {
 	public UserProcess() {
 		int numPhysPages = Machine.processor().getNumPhysPages();
 		pageTable = new TranslationEntry[numPhysPages];
-		for (int i = 0; i < numPhysPages; i++)
-			pageTable[i] = new TranslationEntry(i, i, true, false, false, false);
+//		for (int i = 0; i < numPhysPages; i++)
+//			pageTable[i] = new TranslationEntry(i, i, true, false, false, false);
+		fileTable = new OpenFile[fileTableSize];
+		numFiles = 2;
+		fileTable[0] = UserKernel.console.openForReading();
+		fileTable[1] = UserKernel.console.openForWriting();
 	}
 
 	/**
@@ -368,6 +372,114 @@ public class UserProcess {
 
 		return 0;
 	}
+	
+	/**
+	 * Handle the create() system call.
+	 * @param addr
+	 * @return
+	 */
+	private int handleCreate(int vaddr){
+		if(numFiles>=fileTableSize)
+			return -1;
+		String filename = readVirtualMemoryString(vaddr, 256);
+		if(filename.isEmpty())
+			return -1;
+		for(int i = 2; i < fileTableSize; i++){
+			if(fileTable[i]==null){
+				if((fileTable[i] = UserKernel.fileSystem.open(filename, true))==null)
+					return -1;
+				else
+					++numFiles;
+					return i;
+			}
+		}
+		return -1;
+	}
+	
+	/**
+	 * Handle the open() system call.
+	 * @param addr
+	 * @return
+	 */
+	private int handleOpen(int vaddr){
+		if(numFiles>=fileTableSize)
+			return -1;
+		String filename = readVirtualMemoryString(vaddr, 256);
+		if(filename.isEmpty())
+			return -1;
+		for(int i = 2; i < fileTableSize; i++){
+			if(fileTable[i]==null){
+				if((fileTable[i] = UserKernel.fileSystem.open(filename, false))==null)
+					return -1;
+				else
+					++numFiles;
+					return i;
+			}
+		}
+		return -1;
+	}
+	
+	private int handleRead(int fileDescriptor, int vaddr, int count){
+		if(fileDescriptor > fileTableSize || fileDescriptor < 0)
+			return -1;
+		if(fileTable[fileDescriptor]==null)
+			return -1;
+		
+		int res = 0;
+		while(count > 0){
+			byte[] buffer = new byte[pageSize];
+			int readByte = Math.min(pageSize, count);
+			if((readByte = fileTable[fileDescriptor].read(buffer, 0, readByte)) == -1)
+				return -1;
+			if(writeVirtualMemory(vaddr, buffer, 0,readByte) < readByte)
+				return -1;
+			count -= pageSize;
+			vaddr += pageSize;
+			res += readByte;
+		}
+		return res;
+	}
+	
+	private int handleWrite(int fileDescriptor, int vaddr, int count){
+		if(fileDescriptor > fileTableSize || fileDescriptor < 0)
+			return -1;
+		if(fileTable[fileDescriptor]==null)
+			return -1;
+		
+		int res = count;
+		while(count > 0){
+			byte[] buffer = new byte[pageSize];
+			int writeByte = Math.min(pageSize, count);
+			if(readVirtualMemory(vaddr, buffer, 0, writeByte) < writeByte)
+				return -1;
+			if(fileTable[fileDescriptor].write(buffer, 0, writeByte) < writeByte)
+				return -1;
+			count -= pageSize;
+			vaddr += pageSize;
+		}
+		return res;
+	}
+	
+	private int handleClose(int fileDescriptor){
+		if(fileDescriptor > fileTableSize || fileDescriptor < 0)
+			return -1;
+		if(fileTable[fileDescriptor]==null)
+			return 0;
+		
+		fileTable[fileDescriptor].close();
+		fileTable[fileDescriptor] = null;
+		return 0;
+	}
+	
+	private int handleUnlink(int vaddr){
+		String filename = readVirtualMemoryString(vaddr, 256);
+		if(filename.isEmpty())
+			return -1;
+		if(UserKernel.fileSystem.remove(filename))
+			return 0;
+		else
+			return -1;
+	}
 
 	private static final int syscallHalt = 0, syscallExit = 1, syscallExec = 2,
 			syscallJoin = 3, syscallCreate = 4, syscallOpen = 5,
@@ -441,7 +553,19 @@ public class UserProcess {
 			return handleHalt();
 		case syscallExit:
 			return handleExit(a0);
-
+		case syscallCreate:
+			return handleCreate(a0);
+		case syscallOpen:
+			return handleOpen(a0);
+		case syscallRead:
+			return handleRead(a0, a1, a2);
+		case syscallWrite:
+			return handleWrite(a0, a1, a2);
+		case syscallClose:
+			return handleClose(a0);
+		case syscallUnlink:
+			return handleUnlink(a0);
+			
 		default:
 			Lib.debug(dbgProcess, "Unknown syscall " + syscall);
 			Lib.assertNotReached("Unknown system call!");
@@ -496,4 +620,13 @@ public class UserProcess {
 	private static final int pageSize = Processor.pageSize;
 
 	private static final char dbgProcess = 'a';
+	
+	/** The maximum number of open files in the process*/
+	private static final int fileTableSize = 16;
+	
+	/** The process's file table. */
+	protected OpenFile[] fileTable;
+	
+	/** The number of cunrrent-open files. */
+	protected int numFiles;
 }
