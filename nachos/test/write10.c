@@ -256,6 +256,8 @@ main ()
     } else {
 	printf ("...passed (r = %d)\n", r);
     }
+
+    halt();
     return 0;
 }
 
