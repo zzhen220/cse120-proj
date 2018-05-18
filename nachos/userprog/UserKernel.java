@@ -1,5 +1,8 @@
 package nachos.userprog;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import nachos.machine.*;
 import nachos.threads.*;
 import nachos.userprog.*;
@@ -23,7 +26,18 @@ public class UserKernel extends ThreadedKernel {
 		super.initialize(args);
 
 		console = new SynchConsole(Machine.console());
+		
+		// create and initialize a free page table
+		freePageTable = new LinkedList<>();
+		for(int i = 0; i < Machine.processor().getNumPhysPages(); ++i)
+			freePageTable.add(0,i);
 
+		// initialize the freePageTable lock
+		FPTlock = new Lock();
+		
+		numProcess = 0;
+		NPlock = new Lock();
+		
 		Machine.processor().setExceptionHandler(new Runnable() {
 			public void run() {
 				exceptionHandler();
@@ -98,7 +112,7 @@ public class UserKernel extends ThreadedKernel {
 		String shellProgram = Machine.getShellProgramName();
 		Lib.assertTrue(process.execute(shellProgram, new String[] {}));
 
-		KThread.currentThread().finish();
+		KThread.finish();
 	}
 
 	/**
@@ -113,4 +127,12 @@ public class UserKernel extends ThreadedKernel {
 
 	// dummy variables to make javac smarter
 	private static Coff dummy1 = null;
+	
+	public static List<Integer> freePageTable;
+	
+	public static Lock FPTlock;
+	
+	public static int numProcess;
+	
+	public static Lock NPlock;
 }
