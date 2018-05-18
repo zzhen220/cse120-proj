@@ -40,11 +40,4 @@
 ehthumbs.db
 Thumbs.db
 
-# report #
-##########
-*.raw
-*.score
-*.summary
-*.out
-
 .metadata
