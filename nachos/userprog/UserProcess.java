@@ -764,7 +764,7 @@ public class UserProcess {
 	protected Coff coff;
 
 	/** This process's page table. */
-	private TranslationEntry[] pageTable;
+	protected TranslationEntry[] pageTable;
 
 	/** The number of contiguous pages occupied by the program. */
 	protected int numPages;
@@ -781,7 +781,7 @@ public class UserProcess {
 	private static final char dbgProcess = 'a';
 	
 	/** The maximum number of open files in the process*/
-	private static final int fileTableSize = 16;
+	protected static final int fileTableSize = 16;
 	
 	/** The process's file table. */
 	protected OpenFile[] fileTable;
